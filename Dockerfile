@@ -5,9 +5,7 @@ ADD ./omega-engine /omega-engine
 WORKDIR /omega-engine
 RUN apt-get update && apt-get install -y make gcc git
 RUN git clone --recurse-submodules https://github.com/Bishop-333/OmegA-engine .
-RUN apt-get install -y debhelper pkgconf libgl-dev libvulkan-dev \
-    libcurl4-openssl-dev libjpeg-dev libopenal-dev libsdl3-dev \
-    libogg-dev libvorbis-dev libmad0-dev libflac-dev zlib1g-dev
+RUN apt-get build-dep -y .
 RUN chmod +x debian/rules && dpkg-buildpackage -b -us -uc
 
 # Copy the game files from the builder container to a new image to minimise size
