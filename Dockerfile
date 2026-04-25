@@ -1,36 +1,22 @@
 # Build the game in a base container
-FROM alpine:3.23.4 AS builder
-LABEL "Maintainer"="Florian Piesche <florian@yellowkeycard.net>"
+FROM debian:stable-slim AS builder
 
-ARG IOQUAKE3_COMMIT="unknown"
-ENV IOQUAKE3_COMMIT=${IOQUAKE3_COMMIT}
-
-ADD ./ioq3 /ioq3
-WORKDIR /ioq3/build
-RUN apk --no-cache add curl g++ gcc cmake samurai
-RUN rm /ioq3/.git
-RUN cmake -GNinja \
-        -DBUILD_CLIENT=OFF \
-        -DBUILD_RENDERER_GL1=OFF \
-        -DBUILD_RENDERER_GL2=OFF \
-        -DPRODUCT_VERSION=${IOQUAKE3_COMMIT} \
-        -DBUILD_GAME_QVMS=OFF \
-        ..
-RUN cmake --build .
-RUN cmake --install .
+ADD ./omega-engine /omega-engine
+WORKDIR /omega-engine
+RUN apt-get update && apt-get install -y make gcc
+RUN apt-get build-dep -y .
+RUN chmod +x debian/rules && dpkg-buildpackage -b -us -uc
 
 # Copy the game files from the builder container to a new image to minimise size
-FROM alpine:3.23.4 AS ioq3ded
-LABEL "Maintainer"="Florian Piesche <florian@yellowkeycard.net>"
+FROM debian:stable-slim AS omgded
 
-ARG IOQUAKE3_COMMIT="unknown"
-ENV IOQUAKE3_COMMIT=${IOQUAKE3_COMMIT}
+COPY --from=builder /*.deb /tmp/
+RUN apt-get update && apt-get install -y /tmp/omega-engine_*.deb
+RUN rm /tmp/*.deb
 
-RUN adduser ioq3ded -D
-COPY --chown=ioq3ded --from=builder /opt/quake3/ioq3ded /opt/quake3/ioq3ded
-ADD --chown=ioq3ded files/ /opt/quake3/
+RUN useradd -m omgded
+ADD --chown=omgded files/ /opt/openarena/
 
-USER ioq3ded
+USER omgded
 EXPOSE 27960/udp
-VOLUME [ "/opt/quake3/baseq3"]
-CMD ["/opt/quake3/entrypoint.sh"]
+CMD ["/opt/openarena/entrypoint.sh"]
