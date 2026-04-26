@@ -3,7 +3,8 @@ FROM debian:stable-slim AS builder
 
 ADD ./omega-engine /omega-engine
 WORKDIR /omega-engine
-RUN apt-get update && apt-get install -y make gcc
+RUN apt-get update && apt-get install -y make gcc git
+RUN git clone --recurse-submodules https://github.com/Bishop-333/OmegA-engine .
 RUN apt-get build-dep -y .
 RUN chmod +x debian/rules && dpkg-buildpackage -b -us -uc
 
@@ -11,8 +12,7 @@ RUN chmod +x debian/rules && dpkg-buildpackage -b -us -uc
 FROM debian:stable-slim AS omgded
 
 COPY --from=builder /*.deb /tmp/
-RUN apt-get update && apt-get install -y /tmp/omega-engine_*.deb
-RUN rm /tmp/*.deb
+RUN apt-get update && apt-get install -y /tmp/omega-engine_*.deb && rm -rf /tmp/*.deb /var/lib/apt/lists/*
 
 RUN useradd -m omgded
 ADD --chown=omgded files/ /opt/openarena/
